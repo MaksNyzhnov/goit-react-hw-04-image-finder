@@ -40,13 +40,13 @@ export class App extends Component {
     this.setState({ isModalOpen: true, largeImageURL });
   };
 
-  closeModal = () => {
+  closeModal = (e) => {
+    if (e.target !== e.currentTarget) {
+     return
+    }
     this.setState({ isModalOpen: false });
   };
-  async componentDidMount() {
-    
-  }
-
+  
   async componentDidUpdate(prevProps, prevState) {
     
     const { search, page } = this.state
@@ -77,7 +77,7 @@ export class App extends Component {
     const {search, images, loader, isModalOpen, largeImageURL} = this.state
     return (
     <>
-        <Searchbar onSubmit={this.onSearch} />
+        <Searchbar onSearch={this.onSearch} />
         {search && <ImageGallery search={search} images={images} onImageClick={this.handleImageClick} />}
         {loader && (
           <Grid
