@@ -1,4 +1,6 @@
-import { Component } from "react";
+import { useState } from "react";
+import { useEffect } from "react";
+
 import Searchbar from "components/Searchbar/Searchbar";
 import ImageGallery from "components/ImageGallery/ImageGallery";
 import getImagesBySearch from 'services/api';
@@ -6,79 +8,79 @@ import LoadButton from "components/ImageGallery/loadButton";
 import Modal from 'components/Modal';
 import { Grid } from 'react-loader-spinner';
 
+const  App = () => {
+  const [search, setSearch] = useState('');
+  const [images, setImages] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [largeImageURL, setLargeImageURL] = useState('');
+  const [loader, setLoader] = useState(false)
+  const [page, setPage] = useState(1)
 
+  useEffect(() => {
+    const fetchData = async () => {
+      if (search === '') {
+        setImages([]);
+        return;
+      }
 
-export class App extends Component {
-  state = {
-    search: '',
-    images: [],
-    page: 1,
-    loader: false,
-    isModalOpen: false,
-    largeImageURL: ''
-  }
-  onSearch = (searchText) => {
-    if (searchText === this.state.search) {
+      setLoader(true);
+
+      const newResponse = await getImagesBySearch(search, page);
+      const newImages = newResponse.hits;
+
+      setImages(prevImages => [...prevImages, ...newImages]);
+      setLoader(false);
+    };
+
+    fetchData();
+  }, [search, page]);
+  
+  const onSearch = (searchText) => {
+    if (searchText === search) {
       return
     }
-    
-    this.setState({ search: searchText, images: [],
-      page: 1,
-    });
-    
+    setSearch(searchText)
+    setImages([])
+    setPage(1)
   }
-  handleLoadMore = () => {
+
+   useEffect(() => {
+    const handleEscapeKey = e => {
+      if (e.key === 'Escape') {
+        setShowModal(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscapeKey);
+
+    return () => {
+      window.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, []);
+
+  const handleLoadMore = () => {
     
-    this.setState(prevState => ({
-     
-    page: prevState.page + 1,
-      
-    }));
+    setPage(prevState => prevState + 1 )
   };
 
-  handleImageClick = largeImageURL => {
-    this.setState({ isModalOpen: true, largeImageURL });
+  const handleImageClick = largeImageURL => {
+    setShowModal(true)
+    setLargeImageURL(largeImageURL)
   };
-
-  closeModal = (e) => {
+    
+  const closeModal = (e) => {
     if (e.target !== e.currentTarget) {
      return
     }
-    this.setState({ isModalOpen: false });
+    setShowModal(false)
   };
+
   
-  async componentDidUpdate(prevProps, prevState) {
     
-    const { search, page } = this.state
-    if (search === '') {
-          
-
-      this.setState({
-        images: []
-      })
-          
-
-      return
-    }
-    if (prevState.search !== this.state.search || prevState.page !== this.state.page) {
-          this.setState({ loader: true })
-
-      const newResponse = await getImagesBySearch(search, page)
-      const newImages = newResponse.hits
-      this.setState((prevState) => (
-        {
-          images: [...prevState.images,...newImages],
-          loader: false
-        }
-      ))
-    }
-  }
-  render() {
-    const {search, images, loader, isModalOpen, largeImageURL} = this.state
-    return (
+  return (
     <>
-        <Searchbar onSearch={this.onSearch} />
-        {search && <ImageGallery search={search} images={images} onImageClick={this.handleImageClick} />}
+        <Searchbar onSearch={onSearch} />
+        {search && <ImageGallery search={search} images={images} onImageClick={handleImageClick} />}
         {loader && (
           <Grid
             height="80"
@@ -92,15 +94,16 @@ export class App extends Component {
           />
         )}
         {images.length !== 0 && images.length % 12 === 0 && (
-          <LoadButton onClick={this.handleLoadMore} />
+          <LoadButton onClick={handleLoadMore} />
         )}
         <Modal
-          isOpen={isModalOpen}
-          onClose={this.closeModal}
+          isOpen={showModal}
+          onClose={closeModal}
           image={largeImageURL}
         ></Modal>
         
     </>
   );
-  }
-};
+}
+
+export default App;
